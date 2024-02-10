@@ -11,11 +11,18 @@ class Preprocessor:
         self.annotations_folder = annotations_folder
         self.residue_pair_distances_df = pd.DataFrame(columns = ["pdb_id", "chain1", "chain2", "residue1", "residue2", "distance", "nt1", "nt2"])
         self.cutoff = cutoff
+        self.errors = []
 
-    def preproces_pdbs(self):
+    def preproces_pdbs(self, name):
         pdb_list = os.listdir(self.pdbs_dir)
         for pdb_id in tqdm(pdb_list):
+            if pdb_id == ["4JZV.pdb", "1R3O.pdb"]:
+                continue
+            print("Preprocessing {}".format(pdb_id))
             self._preprocess_pdb(pdb_id)
+        
+        self.residue_pair_distances_df.to_csv(f"{name}/residue_pair_distances.csv", index = False)
+        print(self.errors)
 
     def _preprocess_pdb(self, pdb_id):
         residue_pair_distances = self.get_base_pairs_within_cutoff(pdb_id)
@@ -76,11 +83,14 @@ class Preprocessor:
         
         # print(pdb_id)
         # print(residue_pair_distances)
-        residue_pair_distances = pd.DataFrame(residue_pair_distances)
-        # print(residue_pair_distances.apply(lambda x: x["chain1"] + str(x["residue1"][1]), axis = 1))
-        residue_pair_distances["nt1"] = residue_pair_distances.apply(lambda x: x["chain1"] + str(x["residue1"][1]), axis = 1)
-        residue_pair_distances["nt2"] = residue_pair_distances.apply(lambda x: x["chain2"] + str(x["residue2"][1]), axis = 1)
-
+        try:
+            residue_pair_distances = pd.DataFrame(residue_pair_distances)
+            # print(residue_pair_distances.apply(lambda x: x["chain1"] + str(x["residue1"][1]), axis = 1))
+            residue_pair_distances["nt1"] = residue_pair_distances.apply(lambda x: x["chain1"] + str(x["residue1"][1]), axis = 1)
+            residue_pair_distances["nt2"] = residue_pair_distances.apply(lambda x: x["chain2"] + str(x["residue2"][1]), axis = 1)
+        except:
+            residue_pair_distances = pd.DataFrame(columns = ["pdb_id", "chain1", "chain2", "residue1", "residue2", "distance", "nt1", "nt2"])
+            self.errors.append(pdb_id)
         return residue_pair_distances
     
     def get_dssr_annotations(self, pdb_id):
@@ -91,7 +101,7 @@ class Preprocessor:
         
         dssr_labels["nt1"] = dssr_labels["nt1"].apply(lambda x: x.replace("/", ""))
         dssr_labels["nt2"] = dssr_labels["nt2"].apply(lambda x: x.replace("/", ""))
-        bases_to_filter_out = ['P', "p", 'a', 'u', "c", 'g', "T", "T"] # Lowercase bases are modified bases we are ignoring these for now
+        bases_to_filter_out = ['P', "p", 'a', 'u', "c", 'g', "T", "t"] # Lowercase bases are modified bases we are ignoring these for now
 
 
         pattern = '|'.join(map(re.escape, bases_to_filter_out))
@@ -106,11 +116,12 @@ class Preprocessor:
     
     @staticmethod
     def swap_residues(dsssr_label_row):
-        residue1_number = ''.join(re.findall(r'\d', dsssr_label_row["nt1"]))
-        residue2_number = ''.join(re.findall(r'\d', dsssr_label_row["nt2"]))
+        residue1_number = ''.join(re.findall(r'-?\d', dsssr_label_row["nt1"]))
+        residue2_number = ''.join(re.findall(r'-?\d', dsssr_label_row["nt2"]))
 
         residue1_letter = ''.join(re.findall(r'[a-zA-Z]', dsssr_label_row["nt1"]))
         residue2_letter = ''.join(re.findall(r'[a-zA-Z]', dsssr_label_row["nt2"]))
+
         
         if int(residue1_number) > int(residue2_number) and residue1_number > residue2_number and residue1_letter == residue2_letter:
             dsssr_label_row["nt1"], dsssr_label_row["nt2"] = dsssr_label_row["nt2"], dsssr_label_row["nt1"]
@@ -133,7 +144,7 @@ class Preprocessor:
 
 def main():
     preprocessor = Preprocessor("/Users/ibrahims/Documents/Programming/undergrad_reasearch/rna/rna_parsing/pdbs_0_3", "/Users/ibrahims/Documents/Programming/undergrad_reasearch/rna/rna_parsing", 15)
-    preprocessor.preproces_pdbs()
+    preprocessor.preproces_pdbs("0_3")
 
 
 if __name__ == "__main__":
