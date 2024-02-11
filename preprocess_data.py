@@ -1,18 +1,42 @@
 from Bio.PDB import PDBParser
+from Bio.PDB.MMCIFParser import MMCIFParser
 import os
 import numpy as np
 import pandas as pd
 import re
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 class Preprocessor:
-    def __init__(self, pdbs_dir, annotations_folder, cutoff) -> None:
+    def __init__(self, pdbs_dir, annotations_folder, cutoff, pairs_file, namedby = "pdb_folders") -> None:
         self.pdbs_dir = pdbs_dir
         self.annotations_folder = annotations_folder
         self.residue_pair_distances_df = pd.DataFrame(columns = ["pdb_id", "chain1", "chain2", "residue1", "residue2", "distance", "nt1", "nt2"])
         self.cutoff = cutoff
         self.errors = []
+        self.pairs_file = pairs_file
+        self.namedby = namedby
 
+    
+    def create_histograms(self, resolution):
+        if self.pairs_file:
+            residue_pair_distances_df = pd.read_csv(self.pairs_file)
+        else:
+            # don't want to have this hard coded in the future
+            self.preproces_pdbs(resolution)
+            residue_pair_distances_df = self.residue_pair_distances_df
+
+        residue_pair_distances_df["BasePair"].fillna(False, inplace=True)
+        basepairs = residue_pair_distances_df[residue_pair_distances_df["BasePair"]]
+        nonpairs = residue_pair_distances_df[~residue_pair_distances_df["BasePair"]]
+
+        fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, 5))
+
+        axes[0].hist(basepairs["distance"], bins = 100, label = "Pairs")
+        axes[0].set_title("Base Pair gemotric center distances")
+        axes[1].hist(nonpairs["distance"], bins = 100, label="Nonpairs")
+        axes[1].set_title("Non Base Pair gemotric center distances")
+        plt.show()
     def preproces_pdbs(self, name):
         pdb_list = os.listdir(self.pdbs_dir)
         for pdb_id in tqdm(pdb_list):
@@ -23,6 +47,7 @@ class Preprocessor:
         
         self.residue_pair_distances_df.to_csv(f"{name}/residue_pair_distances.csv", index = False)
         print(self.errors)
+        return self.residue_pair_distances_df
 
     def _preprocess_pdb(self, pdb_id):
         residue_pair_distances = self.get_base_pairs_within_cutoff(pdb_id)
@@ -38,8 +63,11 @@ class Preprocessor:
     def _read_pdb(self, pdb_id):
         # pdb_id = pdb_id.upper() + ".pdb"
         # print(pdb_id)
-        parser = PDBParser()
         path = os.path.join(self.pdbs_dir, pdb_id)
+        if path.endswith(".cif"):
+            parser = MMCIFParser()
+        else:
+            parser = PDBParser()
         structure =  parser.get_structure(pdb_id, path)[0]
         return structure
     
@@ -51,12 +79,12 @@ class Preprocessor:
         for chain in model:
             chain_names.append(chain.id)
 
-        for chain1 in tqdm(model):
+        for chain1 in model:
 
-            for chain2 in tqdm(model):
+            for chain2 in model:
                 if chain_names.index(chain2.id) > chain_names.index(chain2.id):
                     continue
-                for residue1 in tqdm(chain1):
+                for residue1 in chain1:
                     res1name = Preprocessor.replaceHetatms(residue1)
                     if not res1name in ["A", "U", "G", "C"]:
                         continue
@@ -94,7 +122,13 @@ class Preprocessor:
         return residue_pair_distances
     
     def get_dssr_annotations(self, pdb_id):
-        annotations_file = os.path.join(self.annotations_folder, pdb_id.lower().replace(".pdb", ""), "dssr_annotations.csv")
+        pdb_id = pdb_id.replace(".pdb", "").replace(".cif", "")
+        if self.namedby == "pdb_folders":
+            annotations_file = os.path.join(self.annotations_folder, pdb_id.lower().replace(".pdb", ""), "dssr_annotations.csv")
+        if self.namedby == "dssr_folder":
+            annotations_file = os.path.join(self.annotations_folder, f"{pdb_id}.csv")
+
+        print(annotations_file)
         dssr_labels = pd.read_csv(annotations_file)
         if len(dssr_labels) == 0:
             return pd.DataFrame(columns = ["nt1", "nt2", "BasePair"])
@@ -143,8 +177,8 @@ class Preprocessor:
 
 
 def main():
-    preprocessor = Preprocessor("/Users/ibrahims/Documents/Programming/undergrad_reasearch/rna/rna_parsing/pdbs_0_3", "/Users/ibrahims/Documents/Programming/undergrad_reasearch/rna/rna_parsing", 15)
-    preprocessor.preproces_pdbs("0_3")
+    preprocessor = Preprocessor("/Users/ibrahims/Documents/Programming/undergrad_reasearch/rna/rna_annotations_parser/pdbs/3_5/cif_files/", "/Users/ibrahims/Documents/Programming/undergrad_reasearch/rna/rna_annotations_parser/parsed_annotations/dssr_annotations", 15, "3_5/residue_pair_distances.csv", "dssr_folder", )
+    preprocessor.preproces_pdbs("3_5")
 
 
 if __name__ == "__main__":
