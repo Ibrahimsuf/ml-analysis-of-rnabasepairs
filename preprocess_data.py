@@ -6,6 +6,11 @@ import pandas as pd
 import re
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+import warnings
+from operator import itemgetter
+import bisect
+warnings.filterwarnings('ignore')
+
 
 class Preprocessor:
     def __init__(self, pdbs_dir, annotations_folder, cutoff, pairs_file, namedby = "pdb_folders") -> None:
@@ -70,7 +75,7 @@ class Preprocessor:
             parser = PDBParser()
         structure =  parser.get_structure(pdb_id, path)[0]
         return structure
-    
+
     def get_base_pairs_within_cutoff(self, pdb_id):
         model = self._read_pdb(pdb_id)
         residue_pair_distances = {"pdb_id": [], "chain1": [], "chain2": [], "residue1": [], "residue2": [], "distance": []}
@@ -79,35 +84,47 @@ class Preprocessor:
         for chain in model:
             chain_names.append(chain.id)
 
-        for chain1 in model:
-
-            for chain2 in model:
-                if chain_names.index(chain2.id) > chain_names.index(chain2.id):
+        centers = []
+        for chain in model:
+            for residue in chain:
+                resname = Preprocessor.replaceHetatms(residue)
+                if not resname in ["A", "U", "G", "C"]:
                     continue
-                for residue1 in chain1:
-                    res1name = Preprocessor.replaceHetatms(residue1)
-                    if not res1name in ["A", "U", "G", "C"]:
-                        continue
-                    for residue2 in chain2:
-                        res2name = Preprocessor.replaceHetatms(residue2)
-                        if not res2name in ["A", "U", "G", "C"]:
-                            continue
-                        if chain1.id == chain2.id and residue1.id[1] > residue2.id[1]:
-                            continue
-                        if residue1 != residue2:
-                            center1 = residue1.center_of_mass(geometric=True)
-                            center2 = residue2.center_of_mass(geometric=True)
-                            distance = np.linalg.norm(center1 - center2)
 
-                            if distance > self.cutoff:
-                                continue
-                            residue_pair_distances["pdb_id"].append(pdb_id.replace(".pdb", ""))
-                            residue_pair_distances["chain1"].append(chain1.id)
-                            residue_pair_distances["chain2"].append(chain2.id)
-                            residue_pair_distances["residue1"].append(residue1.id)
-                            residue_pair_distances["residue2"].append(residue2.id)
+                center = residue.center_of_mass(geometric=True)
+                centers.append((chain.id, residue.id, center[0], center[1], center[2]))
 
-                            residue_pair_distances["distance"].append(distance)
+        centers.sort(key=itemgetter(2))
+
+        for center in centers:
+            start = bisect.bisect_left(centers, center[2] - self.cutoff, key=itemgetter(2))
+            end = bisect.bisect_left(centers, center[2] + self.cutoff, key=itemgetter(2))
+            for other_center in centers[start:end]:
+                if other_center == center:
+                    continue
+                distance = np.linalg.norm(np.array(center[2:]) - np.array(other_center[2:]))
+
+                if distance > self.cutoff:
+                    continue
+
+                if chain_names.index(center[0]) > chain_names.index(other_center[0]):
+                    continue
+                
+                chain1 = center[0]
+                chain2 = other_center[0]
+                residue1 = center[1]
+                residue2 = other_center[1]
+
+                if chain1 == chain2 and residue1[1] > residue2[1]:
+                    continue
+
+                # residue_pair_distances["pdb_id"].append(center[0])
+                residue_pair_distances["pdb_id"].append("3M4O")
+                residue_pair_distances["chain1"].append(center[0])
+                residue_pair_distances["chain2"].append(other_center[0])
+                residue_pair_distances["residue1"].append(center[1])
+                residue_pair_distances["residue2"].append(other_center[1])
+                residue_pair_distances["distance"].append(distance)
         
         # print(pdb_id)
         # print(residue_pair_distances)
