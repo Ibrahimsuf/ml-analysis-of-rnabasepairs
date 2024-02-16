@@ -13,7 +13,7 @@ warnings.filterwarnings('ignore')
 
 
 class Preprocessor:
-    def __init__(self, pdbs_dir, annotations_folder, cutoff, pairs_file, namedby = "pdb_folders") -> None:
+    def __init__(self, pdbs_dir, annotations_folder, cutoff, pairs_file = None, namedby = "pdb_folders") -> None:
         self.pdbs_dir = pdbs_dir
         self.annotations_folder = annotations_folder
         self.residue_pair_distances_df = pd.DataFrame(columns = ["pdb_id", "chain1", "chain2", "residue1", "residue2", "distance", "nt1", "nt2"])
@@ -56,19 +56,21 @@ class Preprocessor:
 
     def _preprocess_pdb(self, pdb_id):
         residue_pair_distances = self.get_base_pairs_within_cutoff(pdb_id)
+        residue_pair_distances["residues_sorted"] = residue_pair_distances.apply(lambda row: tuple(sorted([row["nt1"], row["nt2"]])), axis = 1)
         dssr_labels = self.get_dssr_annotations(pdb_id)
-        pairs_df = residue_pair_distances.merge(dssr_labels, on = ["nt1", "nt2"], how="outer")
+        dssr_labels["residues_sorted"] = dssr_labels.apply(lambda row: tuple(sorted([row["nt1"], row["nt2"]])), axis = 1)
+        pairs_df = residue_pair_distances.merge(dssr_labels[["residues_sorted", "BasePair"]], on = "residues_sorted", how="outer")
 
         if pairs_df["distance"].isnull().any():
             raise Exception("PDB {} has missing distances".format(pdb_id))
         
         self.residue_pair_distances_df = pd.concat([self.residue_pair_distances_df, pairs_df])
 
-
-    def _read_pdb(self, pdb_id):
+    @staticmethod
+    def read_pdb(pdb_id, pdbs_dir):
         # pdb_id = pdb_id.upper() + ".pdb"
         # print(pdb_id)
-        path = os.path.join(self.pdbs_dir, pdb_id)
+        path = os.path.join(pdbs_dir, pdb_id)
         if path.endswith(".cif"):
             parser = MMCIFParser()
         else:
@@ -77,7 +79,7 @@ class Preprocessor:
         return structure
 
     def get_base_pairs_within_cutoff(self, pdb_id):
-        model = self._read_pdb(pdb_id)
+        model = Preprocessor.read_pdb(pdb_id, self.pdbs_dir)
         residue_pair_distances = {"pdb_id": [], "chain1": [], "chain2": [], "residue1": [], "residue2": [], "distance": []}
        
         chain_names = []
@@ -119,7 +121,7 @@ class Preprocessor:
                     continue
 
                 # residue_pair_distances["pdb_id"].append(center[0])
-                residue_pair_distances["pdb_id"].append("3M4O")
+                residue_pair_distances["pdb_id"].append(pdb_id)
                 residue_pair_distances["chain1"].append(center[0])
                 residue_pair_distances["chain2"].append(other_center[0])
                 residue_pair_distances["residue1"].append(center[1])
@@ -145,7 +147,7 @@ class Preprocessor:
         if self.namedby == "dssr_folder":
             annotations_file = os.path.join(self.annotations_folder, f"{pdb_id}.csv")
 
-        print(annotations_file)
+        # print(annotations_file)
         dssr_labels = pd.read_csv(annotations_file)
         if len(dssr_labels) == 0:
             return pd.DataFrame(columns = ["nt1", "nt2", "BasePair"])
@@ -194,8 +196,12 @@ class Preprocessor:
 
 
 def main():
-    preprocessor = Preprocessor("/Users/ibrahims/Documents/Programming/undergrad_reasearch/rna/rna_annotations_parser/pdbs/3_5/cif_files/", "/Users/ibrahims/Documents/Programming/undergrad_reasearch/rna/rna_annotations_parser/parsed_annotations/dssr_annotations", 15, "3_5/residue_pair_distances.csv", "dssr_folder", )
-    preprocessor.preproces_pdbs("3_5")
+    # preprocessor = Preprocessor("/Users/ibrahims/Documents/Programming/undergrad_reasearch/rna/rna_annotations_parser/pdbs/_5/cif_files/", "/Users/ibrahims/Documents/Programming/undergrad_reasearch/rna/rna_annotations_parser/parsed_annotations/dssr_annotations", 20, "3_5/residue_pair_distances.csv", "dssr_folder", )
+    # preprocessor.preproces_pdbs("3_5")
+
+    # get 0_3 data
+    preprocessor = Preprocessor("/Users/ibrahims/Documents/Programming/undergrad_reasearch/rna/rna_parsing/pdbs_0_3", "/Users/ibrahims/Documents/Programming/undergrad_reasearch/rna/rna_parsing", 20)
+    preprocessor.preproces_pdbs("0_3")
 
 
 if __name__ == "__main__":
