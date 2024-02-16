@@ -1,6 +1,9 @@
 import pandas as pd
 from preprocess_data import Preprocessor
 import numpy as np
+import os
+from tqdm import tqdm
+import json
 class GetInteratomicDistances:
     def __init__(self, pdbs_dir, base_pair_distances_file) -> None:
         self.pdbs_dir = pdbs_dir
@@ -15,6 +18,16 @@ class GetInteratomicDistances:
 
         self.atoms_in_bases = {"G": G_atoms, "A": A_atoms, "C": C_atoms, "U": U_atoms}
         self.incomplete_bases = []
+    def get_all_interatomic_distances(self, distances_path, errors_path):
+        pdb_list = self.base_pair_distances_df["pdb_id"].unique().tolist()
+        for pdb_id in tqdm(pdb_list):
+            print("Finding interatomic distances for {}".format(pdb_id))
+            self.get_interatomic_distances_for_pdb(pdb_id)
+        
+        with open(distances_path, "w") as f:
+            json.dump(self.distances, f)
+        pd.DataFrame(self.incomplete_bases).to_csv(errors_path)
+        
     def get_interatomic_distances_for_pdb(self, pdb_id):
         pdb_possible_pairs = self.base_pair_distances_df[self.base_pair_distances_df["pdb_id"].str.replace(".pdb", "").replace(".cif", "") == pdb_id.replace(".pdb", "").replace(".cif", "")]
         model = Preprocessor.read_pdb(pdb_id, self.pdbs_dir)
@@ -79,3 +92,14 @@ class GetInteratomicDistances:
             self.distances[basepair_type].append(record)
 
         return self.distances
+    
+
+
+
+def main():
+    getinteratomicdistances = GetInteratomicDistances("/Users/ibrahims/Documents/Programming/undergrad_reasearch/rna/rna_parsing/pdbs_0_3", "0_3/residue_pair_distances.csv")
+    getinteratomicdistances.get_all_interatomic_distances("0_3/interatomic_distances.json", "0_3/errors.csv")
+
+
+if __name__ == "__main__":
+    main()
