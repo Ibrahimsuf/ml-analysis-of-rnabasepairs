@@ -4,12 +4,13 @@ import numpy as np
 import os
 from tqdm import tqdm
 import json
+
 class GetInteratomicDistances:
     def __init__(self, pdbs_dir, base_pair_distances_file) -> None:
         self.pdbs_dir = pdbs_dir
         self.base_pair_distances_file = base_pair_distances_file
         self.base_pair_distances_df = pd.read_csv(self.base_pair_distances_file)
-        self.distances = {"AA": [],"AU": [], "AC": [], "AG": [], "CC": [], "CG": [], "CU": [], "GG": [], "GU": [], "UU": []}
+        # self.distances = {"AA": [],"AU": [], "AC": [], "AG": [], "CC": [], "CG": [], "CU": [], "GG": [], "GU": [], "UU": []}
 
         G_atoms = ['P', 'OP1', 'OP2', 'O5\'', 'C5\'', 'C4\'', 'O4\'', 'C3\'', 'O3\'', 'C2\'', 'O2\'', 'C1\'', 'N9', 'C8', 'N7', 'C5', 'C6', 'O6', 'N1', 'C2', 'N2', 'N3', 'C4']
         A_atoms = ['P', 'OP1', 'OP2', 'O5\'', 'C5\'', 'C4\'', "O4'", 'C3\'', 'O3\'', 'C2\'', 'O2\'', 'C1\'', 'N9', 'C8', 'N7', 'C5', 'C6', 'N6', 'N1', 'C2', 'N3', 'C4']
@@ -20,16 +21,29 @@ class GetInteratomicDistances:
         self.incomplete_bases = []
     def get_all_interatomic_distances(self, distances_path, errors_path):
         pdb_list = self.base_pair_distances_df["pdb_id"].unique().tolist()
-        for pdb_id in tqdm(pdb_list):
+
+        for pdb_id in pdb_list[:1]:
             print("Finding interatomic distances for {}".format(pdb_id))
-            self.get_interatomic_distances_for_pdb(pdb_id)
-        
-        with open(distances_path, "w") as f:
-            json.dump(self.distances, f)
+            distances = self.get_interatomic_distances_for_pdb(pdb_id)
+
+            for basepair_type, data in distances.items():
+                pd.DataFrame(data).to_csv(os.path.join(distances_path, f"{basepair_type}.csv"), mode="w", index=False, header=True)
+
+        for pdb_id in tqdm(pdb_list[1:]):
+            print("Finding interatomic distances for {}".format(pdb_id))
+            distances = self.get_interatomic_distances_for_pdb(pdb_id)
+
+            for basepair_type, data in distances.items():
+                pd.DataFrame(data).to_csv(os.path.join(distances_path, f"{basepair_type}.csv"), mode="a", index=False, header=False)
+
+
+
+
         pd.DataFrame(self.incomplete_bases).to_csv(errors_path)
         
     def get_interatomic_distances_for_pdb(self, pdb_id):
-        pdb_possible_pairs = self.base_pair_distances_df[self.base_pair_distances_df["pdb_id"].str.replace(".pdb", "").replace(".cif", "") == pdb_id.replace(".pdb", "").replace(".cif", "")]
+        distances = {"AA": [],"AU": [], "AC": [], "AG": [], "CC": [], "CG": [], "CU": [], "GG": [], "GU": [], "UU": []}
+        pdb_possible_pairs = self.base_pair_distances_df[self.base_pair_distances_df["pdb_id"].str.replace(".pdb", "").str.replace(".cif", "") == pdb_id.replace(".pdb", "").replace(".cif", "")]
         model = Preprocessor.read_pdb(pdb_id, self.pdbs_dir)
         for _, basepair_row in pdb_possible_pairs.iterrows():
             record = {}
@@ -38,8 +52,8 @@ class GetInteratomicDistances:
             record["nt2"] = basepair_row["nt2"]
             record["BasePair"] = basepair_row["BasePair"]
 
-            residue1 = model[basepair_row["chain1"]][eval(basepair_row["residue1"])]
-            residue2 = model[basepair_row["chain2"]][eval(basepair_row["residue2"])]
+            residue1 = model[str(basepair_row["chain1"])][eval(basepair_row["residue1"])]
+            residue2 = model[str(basepair_row["chain2"])][eval(basepair_row["residue2"])]
 
             res1name = Preprocessor.replaceHetatms(residue1)
             res2name = Preprocessor.replaceHetatms(residue2)
@@ -52,9 +66,9 @@ class GetInteratomicDistances:
             
 
             # We switch the base pairs if the later in the alphabet base pair comes first so the distances are consistent, but keep the name so it matches with dssr
-            if (res1name + res2name) in self.distances:
+            if (res1name + res2name) in distances:
                 basepair_type = res1name + res2name
-            elif (res2name + res1name) in self.distances:
+            elif (res2name + res1name) in distances:
                 basepair_type = res2name + res1name
                 residue1, residue2 = residue2, residue1
                 chain1, chain2 = chain2, chain1
@@ -89,16 +103,19 @@ class GetInteratomicDistances:
                 for atom2 in requied_atoms_in_base2:
                     # we convert to float 64 so it is json serializeable
                     record[f"{atom1}-{atom2}"] = np.float64(residue1[atom1] - residue2[atom2])
-            self.distances[basepair_type].append(record)
+            distances[basepair_type].append(record)
 
-        return self.distances
+        return distances
     
 
 
 
 def main():
-    getinteratomicdistances = GetInteratomicDistances("/Users/ibrahims/Documents/Programming/undergrad_reasearch/rna/rna_parsing/pdbs_0_3", "0_3/residue_pair_distances.csv")
-    getinteratomicdistances.get_all_interatomic_distances("0_3/interatomic_distances.json", "0_3/errors.csv")
+    # getinteratomicdistances = GetInteratomicDistances("/Users/ibrahims/Documents/Programming/undergrad_reasearch/rna/rna_parsing/pdbs_0_3", "0_3/residue_pair_distances.csv")
+    # getinteratomicdistances.get_all_interatomic_distances("0_3/interatomic_distances.json", "0_3/errors.csv")
+
+    getinteratomicdistances = GetInteratomicDistances("/Users/ibrahims/Documents/Programming/undergrad_reasearch/rna/rna_annotations_parser/pdbs/3_5/cif_files/", "3_5/residue_pair_distances.csv")
+    getinteratomicdistances.get_all_interatomic_distances("3_5", "3_5/errors.csv")
 
 
 if __name__ == "__main__":
