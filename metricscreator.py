@@ -77,12 +77,13 @@ def main():
     param_weighted = {'max_depth': 2, 'eta': 1, 'objective': 'binary:logistic', "scale_pos_weight": 100}
     param_weighted['nthread'] = 4
     param_weighted['eval_metric'] = ['logloss', "error", 'pre']
-    metric_df_creator = MetricDataFrameCreator(param_weighted, "all")
+    # metric_df_creator = MetricDataFrameCreator(param_weighted, "all")
+    metric_df_creator = MetricDataFrameCreator(param_weighted, "top 5")
 
 
     metrics = metric_df_creator.get_metrics_for_all()
-    pd.DataFrame(metrics).to_csv("WeightedParams_All_feautures_metrics.csv")
-
+    # pd.DataFrame(metrics).to_csv("WeightedParams_All_feautures_metrics.csv")
+    pd.DataFrame(metrics).to_csv("WeightedParams_Top5_feautures_metrics.csv")
 
 if __name__ == "__main__":
     main()
