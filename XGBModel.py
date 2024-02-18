@@ -6,17 +6,21 @@ from numpyencoder import NumpyEncoder
 import json
 import pandas as pd
 class XGBModel:
-    def __init__(self, parms, basepairdata):
+    def __init__(self, parms, data, target = "BasePair"):
         self.parms = parms
         self.bst = None
-        if isinstance(basepairdata, dict):
-            self.data = pd.DataFrame(basepairdata)
-            self.data["BasePair"].fillna(False, inplace=True)
+        if not target in ["BasePair", "BaseStack"]:
+            raise ValueError("target must be 'BasePair' or 'BaseStack'")
+        self.target = target
+        if isinstance(data, dict):
+            self.data = pd.DataFrame(data)
+            self.data[self.target].fillna(False, inplace=True)
         else:
-            self.data = basepairdata
-        features = [feature for feature in self.data.columns if feature not in ["Unnamed: 0", "pdb_id", "nt1", "nt2", "BasePair"]]
+            self.data = data
 
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.data[features], self.data["BasePair"], test_size=0.2, random_state=42)
+
+        features = [feature for feature in self.data.columns if feature not in ["Unnamed: 0", "pdb_id", "nt1", "nt2", "BasePair", "BaseStack"]]
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.data[features], self.data[target], test_size=0.2, random_state=42)
         self.dtrain = xgb.DMatrix(self.X_train, label=self.y_train)
         self.dval = xgb.DMatrix(self.X_test, label=self.y_test)
         self.dtrain = self.dtrain
@@ -59,7 +63,7 @@ class XGBModel:
         return tn, fp, fn, tp
     
     def eval(self, test_data):
-        dtest = xgb.DMatrix(test_data.drop("BasePair", axis=1), label=test_data["BasePair"])
+        dtest = xgb.DMatrix(test_data.drop(["BasePair", "BaseStack"], axis=1), label=test_data[self.target])
         return self.bst.eval(dtest)
     def predict(self, dtest):
         return self.bst.predict(dtest)

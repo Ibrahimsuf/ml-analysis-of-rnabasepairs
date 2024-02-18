@@ -4,24 +4,27 @@ import xgboost as xgb
 import pandas as pd
 from sklearn.metrics import confusion_matrix, classification_report
 class MetricDataFrameCreator:
-    def __init__(self, params, features):
+    def __init__(self, params, features, target = "BasePair"):
         self.params = params
         if not features in ["all", "top 5"]:
             raise ValueError("features must be 'all' or 'top 5'")
+        if not target in ["BasePair", "BaseStack"]:
+            raise ValueError("target must be 'BasePair' or 'BaseStack'")
+        self.target = target
         self.features = features
         self.basepairtypes = ["AA", "AC", "AG", "AU", "CC", "CG", "CU", "GG", "GU", "UU"]
         self.metrics = defaultdict(dict)
         self.models = {}
     def train_model(self, basepairtype):
-        data_df = pd.read_csv(f"0_3/{basepairtype}.csv")
+        data_df = pd.read_csv(f"0_3/{basepairtype}_stacks.csv")
 
-        data_df["BasePair"].fillna(False, inplace=True)
+        data_df[self.target].fillna(False, inplace=True)
 
         if self.features == "all":
-            self.models[basepairtype] = XGBModel(self.params, data_df)
+            self.models[basepairtype] = XGBModel(self.params, data_df, target = self.target)
         elif self.features == "top 5":
-            features = pd.read_csv(f"feature_importances_{basepairtype}.csv").sort_values("importance", ascending=True)[0:5]["Unnamed: 0"].values
-            self.models[basepairtype] = XGBModel(self.params, data_df[list(features) + ["BasePair"]])
+            features = pd.read_csv(f"feature_importances/feature_importances_{basepairtype}.csv").sort_values("importance", ascending=True)[0:5]["Unnamed: 0"].values
+            self.models[basepairtype] = XGBModel(self.params, data_df[list(features) + [self.target]], target = self.target)
         
         self.models[basepairtype].fit(100)
 
@@ -31,12 +34,12 @@ class MetricDataFrameCreator:
             tp, fp, fn, tn = model.get_confusion_matrix()
             claissification_report_dict = model.get_classifcation_report(output_dict=True)
         elif resolution == "3_5":
-            data_test = pd.read_csv(f"3_5/{basepairtype}.csv")
+            data_test = pd.read_csv(f"3_5/{basepairtype}_stacks.csv")
             features = model.bst.feature_names
 
             dtest = xgb.DMatrix(data = data_test[features])
             y_preds = model.bst.predict(dtest).round()
-            y_true = data_test["BasePair"].fillna(False)
+            y_true = data_test[self.target].fillna(False)
             tn, fp, fn, tp = confusion_matrix(y_true, y_preds).ravel()
             claissification_report_dict = classification_report(y_true, y_preds, output_dict=True)
                 
@@ -57,11 +60,11 @@ class MetricDataFrameCreator:
         
 
         if resolution == "0_3":
-            data_df = pd.read_csv(f"0_3/{basepairtype}.csv")
-            data_df["BasePair"].fillna(False, inplace=True)
-            record["% True_0_3"] = (data_df["BasePair"].fillna(False).mean())
+            data_df = pd.read_csv(f"0_3/{basepairtype}_stacks.csv")
+            data_df[self.target].fillna(False, inplace=True)
+            record["% True_0_3"] = (data_df[self.target].fillna(False).mean())
         elif resolution == "3_5":
-            record["% True_3_5"] = (data_test["BasePair"].fillna(False).mean())
+            record["% True_3_5"] = (data_test[self.target].fillna(False).mean())
 
         self.metrics[basepairtype].update(record)
 
@@ -77,13 +80,21 @@ def main():
     param_weighted = {'max_depth': 2, 'eta': 1, 'objective': 'binary:logistic', "scale_pos_weight": 100}
     param_weighted['nthread'] = 4
     param_weighted['eval_metric'] = ['logloss', "error", 'pre']
-    # metric_df_creator = MetricDataFrameCreator(param_weighted, "all")
-    metric_df_creator = MetricDataFrameCreator(param_weighted, "top 5")
+    # # metric_df_creator = MetricDataFrameCreator(param_weighted, "all")
+    # metric_df_creator = MetricDataFrameCreator(param_weighted, "top 5")
 
 
+    # metrics = metric_df_creator.get_metrics_for_all()
+    # # pd.DataFrame(metrics).to_csv("WeightedParams_All_feautures_metrics.csv")
+    # pd.DataFrame(metrics).to_csv("WeightedParams_Top5_feautures_metrics.csv")
+
+    metric_df_creator = MetricDataFrameCreator(param_weighted, "top 5", target = "BaseStack")
     metrics = metric_df_creator.get_metrics_for_all()
-    # pd.DataFrame(metrics).to_csv("WeightedParams_All_feautures_metrics.csv")
-    pd.DataFrame(metrics).to_csv("WeightedParams_Top5_feautures_metrics.csv")
+    pd.DataFrame(metrics).to_csv("WeightedParams_Top5_feautures_metrics_stacks.csv")
+
+    metric_df_creator_all = MetricDataFrameCreator(param_weighted, "all", target = "BaseStack")
+    metrics_all = metric_df_creator_all.get_metrics_for_all()
+    pd.DataFrame(metrics_all).to_csv("WeightedParams_All_feautures_metrics_stacks.csv")
 
 if __name__ == "__main__":
     main()
