@@ -1,4 +1,7 @@
 *.ipynb
 __pycache__
-*.csv
+0_3/
+3_5/
+dssrstacks_0_3/
+dssrstacks_3_5/
 *.json
