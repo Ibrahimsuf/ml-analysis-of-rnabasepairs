@@ -6,7 +6,7 @@ from numpyencoder import NumpyEncoder
 import json
 import pandas as pd
 class XGBModel:
-    def __init__(self, parms, data, target = "BasePair"):
+    def __init__(self, parms, data, target = "BasePair", split = 0.2):
         self.parms = parms
         self.bst = None
         if not target in ["BasePair", "BaseStack"]:
@@ -20,12 +20,20 @@ class XGBModel:
 
 
         features = [feature for feature in self.data.columns if feature not in ["Unnamed: 0", "pdb_id", "nt1", "nt2", "BasePair", "BaseStack"]]
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.data[features], self.data[target], test_size=0.2, random_state=42)
-        self.dtrain = xgb.DMatrix(self.X_train, label=self.y_train)
-        self.dval = xgb.DMatrix(self.X_test, label=self.y_test)
-        self.dtrain = self.dtrain
-        self.evallist = [(self.dtrain, 'train'), (self.dval, 'eval')]
-
+        
+        
+        if split:
+            self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.data[features], self.data[target], test_size=split, random_state=42)
+            self.dval = xgb.DMatrix(self.X_test, label=self.y_test)
+            self.dtrain = xgb.DMatrix(self.X_train, label=self.y_train)
+            self.evallist = [(self.dtrain, 'train'), (self.dval, 'eval')]
+        else:
+            self.X_train = self.data[features]
+            self.y_train = self.data[target]
+            self.dval = None
+            self.dtrain = xgb.DMatrix(self.X_train, label=self.y_train)
+            self.evallist = [(self.dtrain, 'train')]  
+        
     def fit(self, num_round):
         bst = xgb.train(self.parms, self.dtrain, num_round, evals = self.evallist, verbose_eval=False)
         self.bst = bst
