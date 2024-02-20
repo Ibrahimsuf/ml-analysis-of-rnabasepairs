@@ -148,7 +148,12 @@ class Preprocessor:
             annotations_file = os.path.join(self.annotations_folder, f"{pdb_id}.csv")
 
         # print(annotations_file)
-        dssr_labels = pd.read_csv(annotations_file)
+
+        if os.path.exists(annotations_file):
+            dssr_labels = pd.read_csv(annotations_file)
+        else:
+            print(f"No DSSR Pairs for {pdb_id}")
+            return pd.DataFrame(columns = ["nt1", "nt2", "BasePair"])
         if len(dssr_labels) == 0:
             return pd.DataFrame(columns = ["nt1", "nt2", "BasePair"])
         
@@ -200,8 +205,12 @@ def main():
     # preprocessor.preproces_pdbs("3_5")
 
     # get 0_3 data
-    preprocessor = Preprocessor("/Users/ibrahims/Documents/Programming/undergrad_reasearch/rna/rna_parsing/pdbs_0_3", "/Users/ibrahims/Documents/Programming/undergrad_reasearch/rna/rna_parsing", 20)
-    preprocessor.preproces_pdbs("0_3")
+    # preprocessor = Preprocessor("/Users/ibrahims/Documents/Programming/undergrad_reasearch/rna/rna_parsing/pdbs_0_3", "/Users/ibrahims/Documents/Programming/undergrad_reasearch/rna/rna_parsing", 20)
+    # preprocessor.preproces_pdbs("0_3")
+
+    #get test pdb_data
+    preprocessor = Preprocessor("test_pdbs", "dssrpairs_test_pdbs", 20, namedby="dssr_folder")
+    preprocessor.preproces_pdbs("test_pdbs")
 
 
 if __name__ == "__main__":

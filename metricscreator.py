@@ -2,6 +2,7 @@ from collections import defaultdict
 from XGBModel import XGBModel
 import xgboost as xgb
 import pandas as pd
+import numpy as np
 from sklearn.metrics import confusion_matrix, classification_report
 class MetricDataFrameCreator:
     def __init__(self, params, features, target = "BasePair"):
@@ -31,7 +32,7 @@ class MetricDataFrameCreator:
     def get_metrics(self, basepairtype, resolution):
         model = self.models[basepairtype]
         if resolution == "0_3":
-            tp, fp, fn, tn = model.get_confusion_matrix()
+            tn, fp, fn, tp = model.get_confusion_matrix()
             claissification_report_dict = model.get_classifcation_report(output_dict=True)
         elif resolution == "3_5":
             data_test = pd.read_csv(f"3_5/{basepairtype}_stacks.csv")
@@ -42,7 +43,14 @@ class MetricDataFrameCreator:
             y_true = data_test[self.target].fillna(False)
             tn, fp, fn, tp = confusion_matrix(y_true, y_preds).ravel()
             claissification_report_dict = classification_report(y_true, y_preds, output_dict=True)
-                
+        elif resolution == "test_pdbs":
+            data_test = pd.read_csv(f"test_pdbs/{basepairtype}.csv")
+            features = model.bst.feature_names
+            dtest = xgb.DMatrix(data = data_test[features])
+            y_preds = model.bst.predict(dtest).round()
+            y_true = data_test[self.target].fillna(False)
+            tn, fp, fn, tp = confusion_matrix(y_true, y_preds, labels=[False, True]).ravel()
+            claissification_report_dict = classification_report(y_true, y_preds, output_dict=True, labels=[False, True], zero_division=np.nan)
 
         record = {}
         record[f"True Precision_{resolution}"] = (claissification_report_dict["True"]["precision"])
@@ -58,7 +66,6 @@ class MetricDataFrameCreator:
         record[f"False F1_{resolution}"] = claissification_report_dict["False"]["f1-score"]
         record[f"False Support_{resolution}"] = claissification_report_dict["False"]["support"]
         
-
         if resolution == "0_3":
             data_df = pd.read_csv(f"0_3/{basepairtype}_stacks.csv")
             data_df[self.target].fillna(False, inplace=True)
@@ -74,6 +81,11 @@ class MetricDataFrameCreator:
             self.get_metrics(basepairtype, "0_3")
             self.get_metrics(basepairtype, "3_5")
         return self.metrics
+    def get_metrics_test_pdbs(self):
+        for basepairtype in self.basepairtypes:
+            self.train_model(basepairtype)
+            self.get_metrics(basepairtype, "test_pdbs")
+        return self.metrics
 
 
 def main():
@@ -88,13 +100,21 @@ def main():
     # # pd.DataFrame(metrics).to_csv("WeightedParams_All_feautures_metrics.csv")
     # pd.DataFrame(metrics).to_csv("WeightedParams_Top5_feautures_metrics.csv")
 
-    metric_df_creator = MetricDataFrameCreator(param_weighted, "top 5", target = "BaseStack")
-    metrics = metric_df_creator.get_metrics_for_all()
-    pd.DataFrame(metrics).to_csv("WeightedParams_Top5_feautures_metrics_stacks.csv")
+    # metric_df_creator = MetricDataFrameCreator(param_weighted, "top 5", target = "BaseStack")
+    # metrics = metric_df_creator.get_metrics_for_all()
+    # pd.DataFrame(metrics).to_csv("WeightedParams_Top5_feautures_metrics_stacks.csv")
 
-    metric_df_creator_all = MetricDataFrameCreator(param_weighted, "all", target = "BaseStack")
-    metrics_all = metric_df_creator_all.get_metrics_for_all()
-    pd.DataFrame(metrics_all).to_csv("WeightedParams_All_feautures_metrics_stacks.csv")
+    # metric_df_creator_all = MetricDataFrameCreator(param_weighted, "all", target = "BaseStack")
+    # metrics_all = metric_df_creator_all.get_metrics_for_all()
+    # pd.DataFrame(metrics_all).to_csv("WeightedParams_All_feautures_metrics_stacks.csv")
+
+    metric_df_creator_all = MetricDataFrameCreator(param_weighted, "all")
+    metrics_all = metric_df_creator_all.get_metrics_test_pdbs()
+    pd.DataFrame(metrics_all).to_csv("WeightedParams_All_feautures_metrics_test_pdbs.csv")
+
+    metric_df_creator_all = MetricDataFrameCreator(param_weighted, "top 5")
+    metrics_all = metric_df_creator_all.get_metrics_test_pdbs()
+    pd.DataFrame(metrics_all).to_csv("WeightedParams_Top5_feautures_metrics_test_pdbs.csv")
 
 if __name__ == "__main__":
     main()

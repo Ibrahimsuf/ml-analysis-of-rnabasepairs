@@ -5,3 +5,6 @@ __pycache__
 dssrstacks_0_3/
 dssrstacks_3_5/
 *.json
+*.cif
+dssrpairs_test_pdbs/
+test_pdbs/
