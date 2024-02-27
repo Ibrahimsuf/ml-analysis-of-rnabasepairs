@@ -72,6 +72,8 @@ def train_and_test_resampling(X_resampled, y_resampled, test, features, resoluti
     tn, fp, fn, tp = model.get_confusion_matrix()
 
     metrics = {}
+    metrics[f"Train True Examples"] = y_resampled.sum()
+    metrics[f"Train False Examples"] = len(y_resampled) - y_resampled.sum()
     metrics[f"True Precision_{resolution}"] = (classification_report["True"]["precision"])
     metrics[f"True Recall_{resolution}"] = (classification_report["True"]["recall"])
     metrics[f"True F1_{resolution}"] = (classification_report["True"]["f1-score"])

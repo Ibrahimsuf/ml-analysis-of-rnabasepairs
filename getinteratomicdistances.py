@@ -117,7 +117,7 @@ def main():
     # getinteratomicdistances = GetInteratomicDistances("/Users/ibrahims/Documents/Programming/undergrad_reasearch/rna/rna_annotations_parser/pdbs/3_5/cif_files/", "3_5/residue_pair_distances.csv")
     # getinteratomicdistances.get_all_interatomic_distances("3_5", "3_5/errors.csv")
     
-    GetInteratomicDistances("test_pdbs", "test_pdbs/residue_pair_distances.csv").get_all_interatomic_distances("test_pdbs", "test_pdbs/errors.csv")
+    GetInteratomicDistances("test_pdbs2", "test_pdbs2/residue_pair_distances.csv").get_all_interatomic_distances("test_pdbs2", "test_pdbs2/errors.csv")
 
 
 if __name__ == "__main__":

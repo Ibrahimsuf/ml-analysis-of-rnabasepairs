@@ -209,8 +209,8 @@ def main():
     # preprocessor.preproces_pdbs("0_3")
 
     #get test pdb_data
-    preprocessor = Preprocessor("test_pdbs", "dssrpairs_test_pdbs", 20, namedby="dssr_folder")
-    preprocessor.preproces_pdbs("test_pdbs")
+    preprocessor = Preprocessor("test_pdbs2", "dssrpairs_test_pdbs2", 20, namedby="dssr_folder")
+    preprocessor.preproces_pdbs("test_pdbs2")
 
 
 if __name__ == "__main__":
