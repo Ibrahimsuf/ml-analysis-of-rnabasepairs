@@ -22,14 +22,14 @@ class MetricDataFrameCreator:
         data_df[self.target].fillna(False, inplace=True)
 
         if self.features == "all":
-            self.models[basepairtype] = XGBModel(self.params, data_df, target = self.target)
+            self.models[basepairtype] = XGBModel(data_df, target = self.target, parms = self.params)
         elif self.features == "top 5":
             features = pd.read_csv(f"feature_importances/feature_importances_{basepairtype}.csv").sort_values("importance", ascending=True)[0:5]["Unnamed: 0"].values
-            self.models[basepairtype] = XGBModel(self.params, data_df[list(features) + [self.target]], target = self.target)
+            self.models[basepairtype] = XGBModel(data_df[list(features) + [self.target]], target = self.target, parms = self.params)
         
         self.models[basepairtype].fit(100)
 
-    def get_metrics(self, basepairtype, resolution):
+    def get_metrics(self, basepairtype, resolution, test_pdbs_dir = None):
         model = self.models[basepairtype]
         if resolution == "0_3":
             tn, fp, fn, tp = model.get_confusion_matrix()
@@ -44,7 +44,7 @@ class MetricDataFrameCreator:
             tn, fp, fn, tp = confusion_matrix(y_true, y_preds).ravel()
             claissification_report_dict = classification_report(y_true, y_preds, output_dict=True)
         elif resolution == "test_pdbs":
-            data_test = pd.read_csv(f"test_pdbs/{basepairtype}.csv")
+            data_test = pd.read_csv(f"{test_pdbs_dir}/{basepairtype}.csv")
             features = model.bst.feature_names
             dtest = xgb.DMatrix(data = data_test[features])
             y_preds = model.bst.predict(dtest).round()
@@ -81,10 +81,10 @@ class MetricDataFrameCreator:
             self.get_metrics(basepairtype, "0_3")
             self.get_metrics(basepairtype, "3_5")
         return self.metrics
-    def get_metrics_test_pdbs(self):
+    def get_metrics_test_pdbs(self, test_pdbs_dir):
         for basepairtype in self.basepairtypes:
             self.train_model(basepairtype)
-            self.get_metrics(basepairtype, "test_pdbs")
+            self.get_metrics(basepairtype, "test_pdbs", test_pdbs_dir)
         return self.metrics
 
 
@@ -109,12 +109,12 @@ def main():
     # pd.DataFrame(metrics_all).to_csv("WeightedParams_All_feautures_metrics_stacks.csv")
 
     metric_df_creator_all = MetricDataFrameCreator(param_weighted, "all")
-    metrics_all = metric_df_creator_all.get_metrics_test_pdbs()
-    pd.DataFrame(metrics_all).to_csv("WeightedParams_All_feautures_metrics_test_pdbs.csv")
+    metrics_all = metric_df_creator_all.get_metrics_test_pdbs("test_pdbs2")
+    pd.DataFrame(metrics_all).to_csv("WeightedParams_All_feautures_metrics_test_pdbs2.csv")
 
     metric_df_creator_all = MetricDataFrameCreator(param_weighted, "top 5")
-    metrics_all = metric_df_creator_all.get_metrics_test_pdbs()
-    pd.DataFrame(metrics_all).to_csv("WeightedParams_Top5_feautures_metrics_test_pdbs.csv")
+    metrics_all = metric_df_creator_all.get_metrics_test_pdbs("test_pdbs2")
+    pd.DataFrame(metrics_all).to_csv("WeightedParams_Top5_feautures_metrics_test_pdbs2.csv")
 
 if __name__ == "__main__":
     main()
