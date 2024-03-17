@@ -27,7 +27,7 @@ class XGBModel:
             self.data = data
 
 
-        self.features = [feature for feature in self.data.columns if feature not in ["Unnamed: 0", "pdb_id", "nt1", "nt2", "BasePair", "BaseStack", "Class"]]
+        self.features = [feature for feature in self.data.columns if feature not in ["Unnamed: 0", "pdb_id", "nt1", "nt2", "BasePair", "BaseStack", "Class", 'Classification', 'Classification_Sorted']]
         
         
         if split:

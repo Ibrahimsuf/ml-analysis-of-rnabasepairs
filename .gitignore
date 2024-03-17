@@ -13,3 +13,4 @@ dssrpairs_test_pdbs/
 test_pdbs/
 dssrpairs_test_pdbs2/
 test_pdbs2/
+*preds.csv
