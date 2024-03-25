@@ -50,7 +50,7 @@ class GetInteratomicDistances:
             record["pdb_id"] = pdb_id
             record["nt1"] = basepair_row["nt1"]
             record["nt2"] = basepair_row["nt2"]
-            record["BasePair"] = basepair_row["BasePair"]
+            record["BasePair"] = basepair_row["BasePair"] if "BasePair" in basepair_row else np.nan
 
             residue1 = model[str(basepair_row["chain1"])][eval(basepair_row["residue1"])]
             residue2 = model[str(basepair_row["chain2"])][eval(basepair_row["residue2"])]
