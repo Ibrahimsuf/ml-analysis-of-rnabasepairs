@@ -53,18 +53,18 @@ def main():
     basepairtypes = ["AA", "AC", "AG", "AU", "CC", "CG", "CU", "GG", "GU", "UU"]
 
     for basepairtype in basepairtypes:
-        stacks_dir = "dssrstacks_0_3"
-        base_pair_distances_file = f"0_3/{basepairtype}.csv"
-        AddBaseStackstoDistances(stacks_dir, base_pair_distances_file).addstackstofile()
-
-        os.remove(base_pair_distances_file)
-
-    for basepairtype in basepairtypes:
-        stacks_dir = "dssrstacks_3_5"
-        base_pair_distances_file = f"3_5/{basepairtype}.csv"
+        stacks_dir = "test-on-high-low-pdb/stacks"
+        base_pair_distances_file = f"test-on-high-low-pdb/{basepairtype}.csv"
         AddBaseStackstoDistances(stacks_dir, base_pair_distances_file, index=False).addstackstofile()
 
         os.remove(base_pair_distances_file)
+
+    # for basepairtype in basepairtypes:
+    #     stacks_dir = "dssrstacks_3_5"
+    #     base_pair_distances_file = f"3_5/{basepairtype}.csv"
+    #     AddBaseStackstoDistances(stacks_dir, base_pair_distances_file, index=False).addstackstofile()
+
+    #     os.remove(base_pair_distances_file)
 
 
 if __name__ == "__main__":

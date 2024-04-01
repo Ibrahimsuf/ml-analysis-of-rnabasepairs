@@ -1,8 +1,9 @@
 import requests
 import csv
 import os
-def getdssrstacks(pdb_id, output_path):
-    data = requests.get(f"http://skmatic.x3dna.org/pdb/{pdb_id.lower()}/{pdb_id.lower()}.json").json()
+def getdssrstacks(pdb_id, output_path, url = None):
+    url = f"http://skmatic.x3dna.org/pdb/{pdb_id.lower()}/{pdb_id.lower()}.json" if not url else url
+    data = requests.get(url).json()
     with open(f"{output_path}/{pdb_id}.csv", "w") as f:
         writer = csv.writer(f)
         writer.writerow(["BasePairType", "nt1", "nt2"])
@@ -22,19 +23,19 @@ def getdssrstacks(pdb_id, output_path):
 
 
 def main():
-    pdb_list = []
-    with open("/Users/ibrahims/Downloads/pdb_ids_3_5.csv") as f:
-        # first line of the file is the header
-        next(f)
-        for line in f:
-            pdb_list.append(line.strip())
+    pdb_list = [pdb.replace(".csv", "") for pdb in os.listdir("dssrpairs0_3")]
+    # with open("/Users/ibrahims/Downloads/pdb_ids_3_5.csv") as f:
+    #     # first line of the file is the header
+    #     next(f)
+    #     for line in f:
+    #         pdb_list.append(line.strip())
     
-    output_path = f"dssrstacks_3_5"
+    output_path = f"dssrstacks_0_3"
     os.makedirs(output_path, exist_ok=True)
     
     for pdb_id in pdb_list:
         print(pdb_id)
-        getdssrstacks(pdb_id, "dssrstacks_3_5")
+        getdssrstacks(pdb_id, "dssrstacks_0_3")
 
 
 if __name__ == "__main__":

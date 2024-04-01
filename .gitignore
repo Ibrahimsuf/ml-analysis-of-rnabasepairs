@@ -4,6 +4,8 @@ __pycache__
 3_5/
 dssrstacks_0_3/
 dssrstacks_3_5/
+dssrpairs0_3/
+dssrpairs3_5/
 *.json
 *.pt
 *.tar.gz
@@ -15,3 +17,4 @@ dssrpairs_test_pdbs2/
 test_pdbs2/
 *preds.csv
 test-on-high-low-pdb/
+missing_residues.csv
