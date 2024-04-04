@@ -4,6 +4,7 @@ import numpy as np
 import os
 from tqdm import tqdm
 import json
+import argparse
 
 class GetInteratomicDistances:
     def __init__(self, pdbs_dir, base_pair_distances_file) -> None:
@@ -110,15 +111,21 @@ class GetInteratomicDistances:
 
 
 
-def main():
+def main(pdbs_dir, residue_pair_distances_dir, output_path, errors_path):
     # getinteratomicdistances = GetInteratomicDistances("/Users/ibrahims/Documents/Programming/undergrad_reasearch/rna/rna_parsing/pdbs_0_3", "0_3/residue_pair_distances.csv")
     # getinteratomicdistances.get_all_interatomic_distances("0_3/interatomic_distances.json", "0_3/errors.csv")
 
     # getinteratomicdistances = GetInteratomicDistances("/Users/ibrahims/Documents/Programming/undergrad_reasearch/rna/rna_annotations_parser/pdbs/3_5/cif_files/", "3_5/residue_pair_distances.csv")
     # getinteratomicdistances.get_all_interatomic_distances("3_5", "3_5/errors.csv")
     
-    GetInteratomicDistances("test_pdbs2", "test_pdbs2/residue_pair_distances.csv").get_all_interatomic_distances("test_pdbs2", "test_pdbs2/errors.csv")
+    GetInteratomicDistances(pdbs_dir, residue_pair_distances_dir).get_all_interatomic_distances(output_path, errors_path)
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("pdbs_dir")
+    parser.add_argument("residue_pair_distances_dir")
+    parser.add_argument("output_path")
+    parser.add_argument("errors_path")
+    args = parser.parse_args()
+    main(args.pdbs_dir, args.residue_pair_distances_dir, args.output_path, args.errors_path)

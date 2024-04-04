@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import warnings
 from operator import itemgetter
 import bisect
+import argparse
 warnings.filterwarnings('ignore')
 
 
@@ -86,22 +87,22 @@ class Preprocessor:
         for chain in model:
             chain_names.append(chain.id)
 
-        centers = []
+        self.centers = []
         for chain in model:
-            for residue in chain:
-                resname = Preprocessor.replaceHetatms(residue)
-                if not resname in ["A", "U", "G", "C"]:
-                    continue
+          for residue in chain:
+              resname = Preprocessor.replaceHetatms(residue)
+              if not resname in ["A", "U", "G", "C"]:
+                  continue
 
-                center = residue.center_of_mass(geometric=True)
-                centers.append((chain.id, residue.id, center[0], center[1], center[2]))
+              center = residue.center_of_mass(geometric=True)
+              self.centers.append((chain.id, residue.id, center[0], center[1], center[2]))
 
-        centers.sort(key=itemgetter(2))
+        self.centers.sort(key=itemgetter(2))
 
-        for center in centers:
-            start = bisect.bisect_left(centers, center[2] - self.cutoff, key=itemgetter(2))
-            end = bisect.bisect_left(centers, center[2] + self.cutoff, key=itemgetter(2))
-            for other_center in centers[start:end]:
+        for center in self.centers:
+            start = bisect.bisect_left(self.centers, center[2] - self.cutoff, key=itemgetter(2))
+            end = bisect.bisect_left(self.centers, center[2] + self.cutoff, key=itemgetter(2))
+            for other_center in self.centers[start:end]:
                 if other_center == center:
                     continue
                 distance = np.linalg.norm(np.array(center[2:]) - np.array(other_center[2:]))
@@ -200,7 +201,7 @@ class Preprocessor:
         return resname
 
 
-def main():
+def main(pdbs_dir, annotations_folder, output_folder, namedby = "pdb_folders"):
     # preprocessor = Preprocessor("/Users/ibrahims/Documents/Programming/undergrad_reasearch/rna/rna_annotations_parser/pdbs/_5/cif_files/", "/Users/ibrahims/Documents/Programming/undergrad_reasearch/rna/rna_annotations_parser/parsed_annotations/dssr_annotations", 20, "3_5/residue_pair_distances.csv", "dssr_folder", )
     # preprocessor.preproces_pdbs("3_5")
 
@@ -209,9 +210,15 @@ def main():
     # preprocessor.preproces_pdbs("0_3")
 
     #get test pdb_data
-    preprocessor = Preprocessor("test_pdbs2", "dssrpairs_test_pdbs2", 20, namedby="dssr_folder")
-    preprocessor.preproces_pdbs("test_pdbs2")
+    preprocessor = Preprocessor(pdbs_dir, annotations_folder, 20, namedby=namedby)
+    preprocessor.preproces_pdbs(output_folder)
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("pdbs_dir")
+    parser.add_argument("annotations_folder")
+    parser.add_argument("output_folder")
+    parser.add_argument("--namedby", default="pdb_folders")
+    args = parser.parse_args()
+    main(args.pdbs_dir, args.annotations_folder, args.output_folder, args.namedby)

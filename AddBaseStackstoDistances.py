@@ -1,11 +1,11 @@
 import csv
 import pandas as pd
 import os
+import argparse
 class AddBaseStackstoDistances:
-    def __init__(self, stacks_dir, base_pair_distances_file, index = True):
+    def __init__(self, stacks_dir, base_pair_distances_file, index = False):
         self.stacks_dir = stacks_dir
         self.base_pair_distances_file = base_pair_distances_file
-        self.base_pair_distances = pd.read_csv(base_pair_distances_file)
         self.pdb_id = None
         self.stacks_file = None
         self.base_stacks = None
@@ -24,7 +24,7 @@ class AddBaseStackstoDistances:
                     if self.index:
                         nt1, nt2 = row[2], row[3]
                     else:
-                        nt1, nt2 = row[1], row[1]
+                        nt1, nt2 = row[1], row[2]
                     
                     if self.index:
                         pdb_id = row[1]
@@ -33,8 +33,9 @@ class AddBaseStackstoDistances:
                     if pdb_id != self.pdb_id:
                         #if we are on to a new pdb load that into memory and create a list of the base stacks
                         self.pdb_id = pdb_id
-                        print(self.pdb_id)
                         self.stacks_file = pd.read_csv(f"{self.stacks_dir}/{self.pdb_id.replace('.pdb', '').replace('.cif', '')}.csv")
+                        self.stacks_file["nt1"] = self.stacks_file["nt1"].apply(lambda x: x.replace("/", ""))
+                        self.stacks_file["nt2"] = self.stacks_file["nt2"].apply(lambda x: x.replace("/", ""))
                         self.stacks_file["residues_sorted"] = self.stacks_file.apply(lambda row: tuple(sorted([str(row["nt1"]), str(row["nt2"])])), axis = 1)
                         self.base_stacks = set(self.stacks_file["residues_sorted"].values)
                     
@@ -49,15 +50,13 @@ class AddBaseStackstoDistances:
             return False
 
 
-def main():
+def main(stacks_dir, base_pair_distances_dir):
     basepairtypes = ["AA", "AC", "AG", "AU", "CC", "CG", "CU", "GG", "GU", "UU"]
-
     for basepairtype in basepairtypes:
-        stacks_dir = "test-on-high-low-pdb/stacks"
-        base_pair_distances_file = f"test-on-high-low-pdb/{basepairtype}.csv"
+        base_pair_distances_file = f"{base_pair_distances_dir}/{basepairtype}.csv"
         AddBaseStackstoDistances(stacks_dir, base_pair_distances_file, index=False).addstackstofile()
 
-        os.remove(base_pair_distances_file)
+        # os.remove(base_pair_distances_file)
 
     # for basepairtype in basepairtypes:
     #     stacks_dir = "dssrstacks_3_5"
@@ -68,4 +67,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("stacks_dir")
+    parser.add_argument("base_pair_distances_dir")
+    args = parser.parse_args()
+    main(args.stacks_dir, args.base_pair_distances_dir)
