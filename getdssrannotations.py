@@ -31,4 +31,5 @@ def get_dssr_annotations(pdb_id, output_dir, url = None):
 
 
 if __name__ == "__main__":
-   main()
+  get_dssr_annotations("2VQE", "test-on-high-low-pdb", "http://skmatic.x3dna.org/files/3962999b03c8/dssr-derived.json")
+  get_dssr_annotations("2B9M", "test-on-high-low-pdb", "http://skmatic.x3dna.org/files/2fdd98007843/dssr-derived.json")

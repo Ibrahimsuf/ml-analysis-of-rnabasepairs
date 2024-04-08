@@ -4,6 +4,7 @@ from Bio.PDB import PDBParser, MMCIFParser
 import os
 from preprocess_data import Preprocessor
 from Bio.PDB import Atom, Residue
+import argparse
 
 
 G_atoms = ['P', 'OP1', 'OP2', 'O5\'', 'C5\'', 'C4\'', 'O4\'', 'C3\'', 'O3\'', 'C2\'', 'O2\'', 'C1\'', 'N9', 'C8', 'N7', 'C5', 'C6', 'O6', 'N1', 'C2', 'N2', 'N3', 'C4']
@@ -86,9 +87,14 @@ def get_CG_Beads(residue, resname):
 
   return CG_beads
 
-def main():
-  getAllBeadLocations("3_5/residue_pair_distances.csv", "/Users/ibrahims/Documents/Programming/undergrad_reasearch/rna/rna_annotations_parser/pdbs/3_5/cif_files", "3_5/beads.csv")
+def main(residue_pair_distances_path, pdbs_dir, output_path):
+  getAllBeadLocations(residue_pair_distances_path, pdbs_dir, output_path)
 
 
 if __name__ == "__main__":
-  main()
+  parser = argparse.ArgumentParser()
+  parser.add_argument("residue_pair_distances_path")
+  parser.add_argument("pdbs_dir")
+  parser.add_argument("output_path")
+  args = parser.parse_args()
+  main(args.residue_pair_distances_path, args.pdbs_dir, args.output_path)

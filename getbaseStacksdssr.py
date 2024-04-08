@@ -39,4 +39,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+  getdssrstacks("2VQE", "test-on-high-low-pdb/stacks", "http://skmatic.x3dna.org/files/3962999b03c8/dssr-derived.json")
+  getdssrstacks("2B9M", "test-on-high-low-pdb/stacks", "http://skmatic.x3dna.org/files/2fdd98007843/dssr-derived.json")
