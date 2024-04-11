@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import csv
 import argparse
+from tqdm import tqdm
 
 def getdistances(beadchain1, beadchain2, beadsinresidueforrbead1, beadsinresidueforrbead2):
   distances = {}
@@ -22,7 +23,7 @@ def main(residue_pair_distances_path, beads_path, output_path):
     basepairfiles[basepairtype] = open(f"{output_path}/{basepairtype}_beaddistances.csv", "w")
 
 
-  for _, row in residue_pair_distances.iterrows():
+  for _, row in tqdm(residue_pair_distances.iterrows()):
     beadchain1 = beads.loc[row["pdb_id"], row["chain1"], row["residue1"]] if (row["pdb_id"], row["chain1"], row["residue1"]) in beads.index else None
     beadchain2 = beads.loc[row["pdb_id"], row["chain2"], row["residue2"]] if (row["pdb_id"], row["chain2"], row["residue2"]) in beads.index else None
     if beadchain1 is None or beadchain2 is None:
