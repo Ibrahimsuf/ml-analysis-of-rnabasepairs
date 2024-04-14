@@ -2,12 +2,11 @@ import json
 import pandas as pd
 import os
 import requests
+import argparse
 
 
-
-def main():
-    filenames  = pd.read_csv("3_5/UU_beaddistances.csv.gz")["pdb_id"].unique().tolist()
-    output_dir = "dssrpairs3_5"
+def main(pdbs_list, output_dir):
+    filenames  = pd.read_csv(pdbs_list)["PDB_ID"].unique().tolist()
     missing_files = []
     for pdb_id in filenames:
         try:
@@ -31,5 +30,8 @@ def get_dssr_annotations(pdb_id, output_dir, url = None):
 
 
 if __name__ == "__main__":
-  get_dssr_annotations("2VQE", "test-on-high-low-pdb", "http://skmatic.x3dna.org/files/3962999b03c8/dssr-derived.json")
-  get_dssr_annotations("2B9M", "test-on-high-low-pdb", "http://skmatic.x3dna.org/files/2fdd98007843/dssr-derived.json")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("pdbs_list")
+    parser.add_argument("output_dir")
+    args = parser.parse_args()
+    main(args.pdbs_list, args.output_dir)

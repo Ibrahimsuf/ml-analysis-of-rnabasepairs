@@ -14,7 +14,7 @@ warnings.filterwarnings('ignore')
 
 
 class Preprocessor:
-    def __init__(self, pdbs_dir, annotations_folder, cutoff, pairs_file = None, namedby = "pdb_folders") -> None:
+    def __init__(self, pdbs_dir, annotations_folder = None, cutoff = 20, pairs_file = None, namedby = "pdb_folders") -> None:
         self.pdbs_dir = pdbs_dir
         self.annotations_folder = annotations_folder
         self.residue_pair_distances_df = pd.DataFrame(columns = ["pdb_id", "chain1", "chain2", "residue1", "residue2", "distance", "nt1", "nt2"])
@@ -45,6 +45,7 @@ class Preprocessor:
         plt.show()
     def preproces_pdbs(self, name):
         pdb_list = os.listdir(self.pdbs_dir)
+        pdb_list = [x for x in pdb_list if x.endswith(".pdb") or x.endswith(".cif")]
         for pdb_id in tqdm(pdb_list):
             if pdb_id == ["4JZV.pdb", "1R3O.pdb"]:
                 continue
@@ -58,14 +59,15 @@ class Preprocessor:
     def _preprocess_pdb(self, pdb_id):
         residue_pair_distances = self.get_base_pairs_within_cutoff(pdb_id)
         residue_pair_distances["residues_sorted"] = residue_pair_distances.apply(lambda row: tuple(sorted([row["nt1"], row["nt2"]])), axis = 1)
-        dssr_labels = self.get_dssr_annotations(pdb_id)
-        dssr_labels["residues_sorted"] = dssr_labels.apply(lambda row: tuple(sorted([row["nt1"], row["nt2"]])), axis = 1)
-        pairs_df = residue_pair_distances.merge(dssr_labels[["residues_sorted", "BasePair"]], on = "residues_sorted", how="outer")
+        self.residue_pair_distances_df = pd.concat([self.residue_pair_distances_df, residue_pair_distances])
+        # dssr_labels = self.get_dssr_annotations(pdb_id)
+        # dssr_labels["residues_sorted"] = dssr_labels.apply(lambda row: tuple(sorted([row["nt1"], row["nt2"]])), axis = 1)
+        # pairs_df = residue_pair_distances.merge(dssr_labels[["residues_sorted", "BasePair"]], on = "residues_sorted", how="outer")
 
-        if pairs_df["distance"].isnull().any():
-            raise Exception("PDB {} has missing distances".format(pdb_id))
+        # if pairs_df["distance"].isnull().any():
+        #     raise Exception("PDB {} has missing distances".format(pdb_id))
         
-        self.residue_pair_distances_df = pd.concat([self.residue_pair_distances_df, pairs_df])
+        # self.residue_pair_distances_df = pd.concat([self.residue_pair_distances_df, pairs_df])
 
     @staticmethod
     def read_pdb(pdb_id, pdbs_dir):
@@ -201,7 +203,7 @@ class Preprocessor:
         return resname
 
 
-def main(pdbs_dir, annotations_folder, output_folder, namedby = "pdb_folders"):
+def main(pdbs_dir, output_folder):
     # preprocessor = Preprocessor("/Users/ibrahims/Documents/Programming/undergrad_reasearch/rna/rna_annotations_parser/pdbs/_5/cif_files/", "/Users/ibrahims/Documents/Programming/undergrad_reasearch/rna/rna_annotations_parser/parsed_annotations/dssr_annotations", 20, "3_5/residue_pair_distances.csv", "dssr_folder", )
     # preprocessor.preproces_pdbs("3_5")
 
@@ -210,15 +212,15 @@ def main(pdbs_dir, annotations_folder, output_folder, namedby = "pdb_folders"):
     # preprocessor.preproces_pdbs("0_3")
 
     #get test pdb_data
-    preprocessor = Preprocessor(pdbs_dir, annotations_folder, 20, namedby=namedby)
+    preprocessor = Preprocessor(pdbs_dir)
     preprocessor.preproces_pdbs(output_folder)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("pdbs_dir")
-    parser.add_argument("annotations_folder")
+    # parser.add_argument("annotations_folder")
     parser.add_argument("output_folder")
-    parser.add_argument("--namedby", default="pdb_folders")
+    # parser.add_argument("--namedby", default="pdb_folders")
     args = parser.parse_args()
-    main(args.pdbs_dir, args.annotations_folder, args.output_folder, args.namedby)
+    main(args.pdbs_dir, args.output_folder)

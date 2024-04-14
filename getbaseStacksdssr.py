@@ -1,6 +1,8 @@
 import requests
 import csv
 import os
+import argparse
+import pandas as pd
 def getdssrstacks(pdb_id, output_path, url = None):
     url = f"http://skmatic.x3dna.org/pdb/{pdb_id.lower()}/{pdb_id.lower()}.json" if not url else url
     data = requests.get(url).json()
@@ -22,22 +24,24 @@ def getdssrstacks(pdb_id, output_path, url = None):
                 writer.writerow([base_pair_type, nt1, nt2])
 
 
-def main():
-    pdb_list = [pdb.replace(".csv", "") for pdb in os.listdir("dssrpairs0_3")]
+def main(pdbs_list_file, output_path):
+    pdb_list = pd.read_csv(pdbs_list_file)["PDB_ID"].unique().tolist()
     # with open("/Users/ibrahims/Downloads/pdb_ids_3_5.csv") as f:
     #     # first line of the file is the header
     #     next(f)
     #     for line in f:
     #         pdb_list.append(line.strip())
     
-    output_path = f"dssrstacks_0_3"
     os.makedirs(output_path, exist_ok=True)
     
     for pdb_id in pdb_list:
         print(pdb_id)
-        getdssrstacks(pdb_id, "dssrstacks_0_3")
+        getdssrstacks(pdb_id, output_path)
 
 
 if __name__ == "__main__":
-  getdssrstacks("2VQE", "test-on-high-low-pdb/stacks", "http://skmatic.x3dna.org/files/3962999b03c8/dssr-derived.json")
-  getdssrstacks("2B9M", "test-on-high-low-pdb/stacks", "http://skmatic.x3dna.org/files/2fdd98007843/dssr-derived.json")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("pdbs_list_file")
+    parser.add_argument("output_path")
+    args = parser.parse_args()
+    main(args.pdbs_list_file, args.output_path)
